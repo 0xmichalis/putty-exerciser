@@ -32,7 +32,8 @@ contract PuttyExerciser is IFlashLoanSimpleReceiver {
         require(_putty != address(0), '!_putty');
         require(_weth != address(0), '!_weth');
 
-        lendingPool = ILendingPool(ILendingPoolAddressesProvider(_provider).getLendingPool());
+        lendingPool =
+            ILendingPool(ILendingPoolAddressesProvider(_provider).getLendingPool());
         putty = IPuttyV2(_putty);
         weth = IWETH(_weth);
         IWETH(_weth).approve(_putty, type(uint256).max);
@@ -90,7 +91,9 @@ contract PuttyExerciser is IFlashLoanSimpleReceiver {
 
         // Swap received NFT in Sudo - assuming there is a single
         // NFT asset per option so we just use a single pool.
-        ILSSVMPair(sudoPool).swapNFTsForToken(nftIds, amountOwing, payable(initiator), false, address(0));
+        ILSSVMPair(sudoPool).swapNFTsForToken(
+            nftIds, amountOwing, payable(initiator), false, address(0)
+        );
 
         return true;
     }

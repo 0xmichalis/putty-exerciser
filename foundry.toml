@@ -9,3 +9,4 @@ runs = 10000
 
 [fmt]
 quote_style = 'single'
+line_length = 90
