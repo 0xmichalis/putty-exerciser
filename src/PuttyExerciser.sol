@@ -4,25 +4,28 @@ pragma solidity 0.8.16;
 import './interfaces/IFlashLoanSimpleReceiver.sol';
 import './interfaces/ILendingPool.sol';
 import './interfaces/ILendingPoolAddressesProvider.sol';
+import './interfaces/ILSSVMPair.sol';
 import './interfaces/IPuttyV2.sol';
 import './interfaces/IWETH.sol';
+import {Order} from './lib/Order.sol';
 
+/// @notice PuttyExerciser automates exercising Putty call
+/// options without the need to have any capital available
+/// to pay the option premium.
 contract PuttyExerciser is IFlashLoanSimpleReceiver {
+    // ----------------------------------------
+    //                STORAGE
+    // ----------------------------------------
+
     /// @notice Lending pool that supports flashloans
     ILendingPool public immutable lendingPool;
     /// @notice Putty contract to exercise options
     IPuttyV2 public immutable putty;
     IWETH public immutable weth;
 
-    error InsufficientBalance();
-    error InvalidSender();
-
-    modifier onlyLendingPool() {
-        if (msg.sender != address(lendingPool)) {
-            revert InvalidSender();
-        }
-        _;
-    }
+    // ----------------------------------------
+    //              CONSTRUCTOR
+    // ----------------------------------------
 
     constructor(address _provider, address _putty, address _weth) payable {
         require(_provider != address(0), '!_provider');
@@ -40,58 +43,54 @@ contract PuttyExerciser is IFlashLoanSimpleReceiver {
     // ----------------------------------------
 
     /**
-     * @notice Request a flashloan to be executed
-     * @param asset Asset to borrow
-     * @param amount Amount to borrow
+     * @notice Exercise a Putty option via a flashloan
+     * @param order Putty order to exercise
      * @param sudoPool Sudo pool to swap assets
      */
-    function exercise(address asset, uint256 amount, address sudoPool) external {
+    function exercise(Order calldata order, address sudoPool) external {
         lendingPool.flashLoanSimple(
             address(this), // receiving address
-            asset,
-            amount,
-            abi.encode(sudoPool), // params
+            order.baseAsset,
+            order.strike,
+            abi.encode(order, sudoPool), // params
             0 // referal code
         );
     }
 
     /**
      * @notice This function is called after our contract has received the flash loaned amount
-     * @param asset The address of the flash-borrowed asset
      * @param amount The amount of the flash-borrowed asset
      * @param premium The fee of the flash-borrowed asset
      * @param initiator The address of the flashloan initiator
      * @param params The byte-encoded params passed when initiating the flashloan
      */
-    function executeOperation(address asset, uint256 amount, uint256 premium, address initiator, bytes calldata params)
-        external
-        override
-        onlyLendingPool
-        returns (bool)
-    {
-        // TODO: Probably can be removed
-        if (initiator != address(this)) {
-            revert InvalidSender();
-        }
-
+    function executeOperation(
+        address, /* asset */
+        uint256 amount,
+        uint256 premium,
+        address initiator,
+        bytes calldata params
+    ) external override returns (bool) {
         // Decode parameters provided by the lending pool
-        (address sudoPool) = abi.decode(params, (address));
+        (Order memory order, address sudoPool) = abi.decode(params, (Order, address));
 
-        // TODO: Logic
-        // 1. If the asset to be borrowed is WETH then
-        // approve Putty + premium in WETH
-        // 2.
+        // Exercise option in Putty
+        putty.exercise(order, new uint[](0));
 
-        uint256 amountOut;
-
-        // At the end of our logic above, we owe the flashloaned amounts + premiums.
-        // Therefore we need to ensure we have enough to repay these amounts.
-        uint256 amountOwing = amount + premium;
-        // It is assumed here that the client that constructs the path is trusted
-        // and has done the construction properly, otherwise we may get rekt.
-        if (amountOwing > amountOut) {
-            revert InsufficientBalance();
+        // Prepare NFT ids to swap
+        uint256 nftCount = order.erc721Assets.length;
+        uint256[] memory nftIds = new uint[](nftCount);
+        for (uint256 i = 0; i < nftCount; i++) {
+            nftIds[i] = order.erc721Assets[i].tokenId;
         }
+
+        // At the end of our logic, we owe the flashloaned amount + premium.
+        // Therefore we need to ensure we have enough to repay this amount.
+        uint256 amountOwing = amount + premium;
+
+        // Swap received NFT in Sudo - assuming there is a single
+        // NFT asset per option so we just use a single pool.
+        ILSSVMPair(sudoPool).swapNFTsForToken(nftIds, amountOwing, payable(initiator), false, address(0));
 
         return true;
     }
