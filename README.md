@@ -1,6 +1,6 @@
 # Putty exerciser [![CI](https://github.com/0xmichalis/putty-exerciser/actions/workflows/ci.yml/badge.svg)](https://github.com/0xmichalis/putty-exerciser/actions/workflows/ci.yml)
 
-Exercise Putty options nice and easy.
+Exercise Putty calls nice and easy.
 
 ## Install
 
