@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import "./IERC165.sol";
+import './IERC165.sol';
 
 /**
  * @dev Required interface of an ERC1155 compliant contract, as defined in the
@@ -39,9 +39,7 @@ interface IERC1155 is IERC165 {
      * `approved`.
      */
     event ApprovalForAll(
-        address indexed account,
-        address indexed operator,
-        bool approved
+        address indexed account, address indexed operator, bool approved
     );
 
     /**
@@ -60,10 +58,7 @@ interface IERC1155 is IERC165 {
      *
      * - `account` cannot be the zero address.
      */
-    function balanceOf(address account, uint256 id)
-        external
-        view
-        returns (uint256);
+    function balanceOf(address account, uint256 id) external view returns (uint256);
 
     /**
      * @dev xref:ROOT:erc1155.adoc#batch-operations[Batched] version of {balanceOf}.

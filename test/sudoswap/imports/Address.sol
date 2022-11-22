@@ -52,16 +52,10 @@ library Address {
      * https://solidity.readthedocs.io/en/v0.5.11/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions pattern].
      */
     function sendValue(address payable recipient, uint256 amount) internal {
-        require(
-            address(this).balance >= amount,
-            "Address: insufficient balance"
-        );
+        require(address(this).balance >= amount, 'Address: insufficient balance');
 
-        (bool success, ) = recipient.call{value: amount}("");
-        require(
-            success,
-            "Address: unable to send value, recipient may have reverted"
-        );
+        (bool success,) = recipient.call{value: amount}('');
+        require(success, 'Address: unable to send value, recipient may have reverted');
     }
 
     /**
@@ -86,7 +80,7 @@ library Address {
         internal
         returns (bytes memory)
     {
-        return functionCall(target, data, "Address: low-level call failed");
+        return functionCall(target, data, 'Address: low-level call failed');
     }
 
     /**
@@ -95,11 +89,10 @@ library Address {
      *
      * _Available since v3.1._
      */
-    function functionCall(
-        address target,
-        bytes memory data,
-        string memory errorMessage
-    ) internal returns (bytes memory) {
+    function functionCall(address target, bytes memory data, string memory errorMessage)
+        internal
+        returns (bytes memory)
+    {
         return functionCallWithValue(target, data, 0, errorMessage);
     }
 
@@ -114,18 +107,13 @@ library Address {
      *
      * _Available since v3.1._
      */
-    function functionCallWithValue(
-        address target,
-        bytes memory data,
-        uint256 value
-    ) internal returns (bytes memory) {
-        return
-            functionCallWithValue(
-                target,
-                data,
-                value,
-                "Address: low-level call with value failed"
-            );
+    function functionCallWithValue(address target, bytes memory data, uint256 value)
+        internal
+        returns (bytes memory)
+    {
+        return functionCallWithValue(
+            target, data, value, 'Address: low-level call with value failed'
+        );
     }
 
     /**
@@ -140,15 +128,10 @@ library Address {
         uint256 value,
         string memory errorMessage
     ) internal returns (bytes memory) {
-        require(
-            address(this).balance >= value,
-            "Address: insufficient balance for call"
-        );
-        require(isContract(target), "Address: call to non-contract");
+        require(address(this).balance >= value, 'Address: insufficient balance for call');
+        require(isContract(target), 'Address: call to non-contract');
 
-        (bool success, bytes memory returndata) = target.call{value: value}(
-            data
-        );
+        (bool success, bytes memory returndata) = target.call{value: value}(data);
         return verifyCallResult(success, returndata, errorMessage);
     }
 
@@ -163,12 +146,7 @@ library Address {
         view
         returns (bytes memory)
     {
-        return
-            functionStaticCall(
-                target,
-                data,
-                "Address: low-level static call failed"
-            );
+        return functionStaticCall(target, data, 'Address: low-level static call failed');
     }
 
     /**
@@ -182,7 +160,7 @@ library Address {
         bytes memory data,
         string memory errorMessage
     ) internal view returns (bytes memory) {
-        require(isContract(target), "Address: static call to non-contract");
+        require(isContract(target), 'Address: static call to non-contract');
 
         (bool success, bytes memory returndata) = target.staticcall(data);
         return verifyCallResult(success, returndata, errorMessage);
@@ -199,11 +177,7 @@ library Address {
         returns (bytes memory)
     {
         return
-            functionDelegateCall(
-                target,
-                data,
-                "Address: low-level delegate call failed"
-            );
+            functionDelegateCall(target, data, 'Address: low-level delegate call failed');
     }
 
     /**
@@ -217,7 +191,7 @@ library Address {
         bytes memory data,
         string memory errorMessage
     ) internal returns (bytes memory) {
-        require(isContract(target), "Address: delegate call to non-contract");
+        require(isContract(target), 'Address: delegate call to non-contract');
 
         (bool success, bytes memory returndata) = target.delegatecall(data);
         return verifyCallResult(success, returndata, errorMessage);

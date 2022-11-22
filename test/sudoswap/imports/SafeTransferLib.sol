@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {ERC20} from "./ERC20.sol";
+import {ERC20} from './ERC20.sol';
 
 /// @notice Safe ETH and ERC20 transfer library that gracefully handles missing return values.
 /// @author Modified from Gnosis (https://github.com/gnosis/gp-v2-contracts/blob/main/src/contracts/libraries/GPv2SafeERC20.sol)
@@ -19,19 +19,16 @@ library SafeTransferLib {
             callStatus := call(gas(), to, amount, 0, 0, 0, 0)
         }
 
-        require(callStatus, "ETH_TRANSFER_FAILED");
+        require(callStatus, 'ETH_TRANSFER_FAILED');
     }
 
     /*///////////////////////////////////////////////////////////////
                            ERC20 OPERATIONS
     //////////////////////////////////////////////////////////////*/
 
-    function safeTransferFrom(
-        ERC20 token,
-        address from,
-        address to,
-        uint256 amount
-    ) internal {
+    function safeTransferFrom(ERC20 token, address from, address to, uint256 amount)
+        internal
+    {
         bool callStatus;
 
         assembly {
@@ -58,17 +55,10 @@ library SafeTransferLib {
             callStatus := call(gas(), token, 0, freeMemoryPointer, 100, 0, 0)
         }
 
-        require(
-            didLastOptionalReturnCallSucceed(callStatus),
-            "TRANSFER_FROM_FAILED"
-        );
+        require(didLastOptionalReturnCallSucceed(callStatus), 'TRANSFER_FROM_FAILED');
     }
 
-    function safeTransfer(
-        ERC20 token,
-        address to,
-        uint256 amount
-    ) internal {
+    function safeTransfer(ERC20 token, address to, uint256 amount) internal {
         bool callStatus;
 
         assembly {
@@ -91,17 +81,10 @@ library SafeTransferLib {
             callStatus := call(gas(), token, 0, freeMemoryPointer, 68, 0, 0)
         }
 
-        require(
-            didLastOptionalReturnCallSucceed(callStatus),
-            "TRANSFER_FAILED"
-        );
+        require(didLastOptionalReturnCallSucceed(callStatus), 'TRANSFER_FAILED');
     }
 
-    function safeApprove(
-        ERC20 token,
-        address to,
-        uint256 amount
-    ) internal {
+    function safeApprove(ERC20 token, address to, uint256 amount) internal {
         bool callStatus;
 
         assembly {
@@ -124,7 +107,7 @@ library SafeTransferLib {
             callStatus := call(gas(), token, 0, freeMemoryPointer, 68, 0, 0)
         }
 
-        require(didLastOptionalReturnCallSucceed(callStatus), "APPROVE_FAILED");
+        require(didLastOptionalReturnCallSucceed(callStatus), 'APPROVE_FAILED');
     }
 
     /*///////////////////////////////////////////////////////////////

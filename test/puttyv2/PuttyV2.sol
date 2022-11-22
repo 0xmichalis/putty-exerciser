@@ -32,25 +32,25 @@ pragma solidity 0.8.16;
  * by out.eth and tamagoyaki
  */
 
-import "./lib/IWETH.sol";
+import './lib/IWETH.sol';
 
-import "openzeppelin/utils/cryptography/SignatureChecker.sol";
-import "openzeppelin/utils/cryptography/draft-EIP712.sol";
-import "openzeppelin/utils/Strings.sol";
-import "openzeppelin/utils/introspection/ERC165Checker.sol";
-import "openzeppelin/access/Ownable.sol";
-import "solmate/utils/SafeTransferLib.sol";
-import "solmate/tokens/ERC721.sol";
+import 'openzeppelin/utils/cryptography/SignatureChecker.sol';
+import 'openzeppelin/utils/cryptography/draft-EIP712.sol';
+import 'openzeppelin/utils/Strings.sol';
+import 'openzeppelin/utils/introspection/ERC165Checker.sol';
+import 'openzeppelin/access/Ownable.sol';
+import 'solmate/utils/SafeTransferLib.sol';
+import 'solmate/tokens/ERC721.sol';
 
-import "./PuttyV2Nft.sol";
-import "./PuttyV2Handler.sol";
+import './PuttyV2Nft.sol';
+import './PuttyV2Handler.sol';
 
 /**
  * @title PuttyV2
  * @author out.eth
  * @notice An otc erc721 and erc20 option market.
  */
-contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Ownable {
+contract PuttyV2 is PuttyV2Nft, EIP712('Putty', '2.0'), ERC721TokenReceiver, Ownable {
     /* ~~~ TYPES ~~~ */
 
     using SafeTransferLib for ERC20;
@@ -112,21 +112,25 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
     /**
      * @dev ERC721Asset type hash used for EIP-712 encoding.
      */
-    bytes32 public constant ERC721ASSET_TYPE_HASH = keccak256("ERC721Asset(address token,uint256 tokenId)");
+    bytes32 public constant ERC721ASSET_TYPE_HASH =
+        keccak256('ERC721Asset(address token,uint256 tokenId)');
 
     /**
      * @dev ERC20Asset type hash used for EIP-712 encoding.
      */
-    bytes32 public constant ERC20ASSET_TYPE_HASH = keccak256("ERC20Asset(address token,uint256 tokenAmount)");
+    bytes32 public constant ERC20ASSET_TYPE_HASH =
+        keccak256('ERC20Asset(address token,uint256 tokenAmount)');
 
     /**
      * @dev ORDER_TYPE_HASH type hash used for EIP-712 encoding.
      */
     bytes32 public constant ORDER_TYPE_HASH = keccak256(
-        "Order(" "address maker," "bool isCall," "bool isLong," "address baseAsset," "uint256 strike," "uint256 premium,"
-        "uint256 duration," "uint256 expiration," "uint256 nonce," "address[] whitelist," "address[] floorTokens,"
-        "ERC20Asset[] erc20Assets," "ERC721Asset[] erc721Assets" ")" "ERC20Asset(address token,uint256 tokenAmount)"
-        "ERC721Asset(address token,uint256 tokenId)"
+        'Order(' 'address maker,' 'bool isCall,' 'bool isLong,' 'address baseAsset,'
+        'uint256 strike,' 'uint256 premium,' 'uint256 duration,' 'uint256 expiration,'
+        'uint256 nonce,' 'address[] whitelist,' 'address[] floorTokens,'
+        'ERC20Asset[] erc20Assets,' 'ERC721Asset[] erc721Assets' ')'
+        'ERC20Asset(address token,uint256 tokenAmount)'
+        'ERC721Asset(address token,uint256 tokenId)'
     );
 
     /**
@@ -210,7 +214,10 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param order The order that was filled.
      */
     event FilledOrder(
-        bytes32 indexed orderHash, bytes32 indexed oppositeOrderHash, uint256[] floorAssetTokenIds, Order order
+        bytes32 indexed orderHash,
+        bytes32 indexed oppositeOrderHash,
+        uint256[] floorAssetTokenIds,
+        Order order
     );
 
     /**
@@ -219,7 +226,9 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param floorAssetTokenIds The floor asset token ids that were used.
      * @param order The order that was exercised.
      */
-    event ExercisedOrder(bytes32 indexed orderHash, uint256[] floorAssetTokenIds, Order order);
+    event ExercisedOrder(
+        bytes32 indexed orderHash, uint256[] floorAssetTokenIds, Order order
+    );
 
     /**
      * @notice Emitted when an order is withdrawn.
@@ -242,7 +251,7 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
     event SetMinimumValidNonce(uint256 minimumValidNonce);
 
     constructor(string memory _baseURI, uint256 _fee, address _weth) {
-        require(_weth != address(0), "Must set weth address");
+        require(_weth != address(0), 'Must set weth address');
 
         setBaseURI(_baseURI);
         setFee(_fee);
@@ -269,7 +278,7 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param _fee The new fee rate to use.
      */
     function setFee(uint256 _fee) public payable onlyOwner {
-        require(_fee < 30, "fee must be less than 3%");
+        require(_fee < 30, 'fee must be less than 3%');
 
         fee = _fee;
 
@@ -313,51 +322,64 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * when filling a long call order.
      * @return positionId The id of the position NFT that the msg.sender receives.
      */
-    function fillOrder(Order memory order, bytes calldata signature, uint256[] memory floorAssetTokenIds)
-        public
-        payable
-        returns (uint256 positionId)
-    {
+    function fillOrder(
+        Order memory order,
+        bytes calldata signature,
+        uint256[] memory floorAssetTokenIds
+    ) public payable returns (uint256 positionId) {
         /* ~~~ CHECKS ~~~ */
 
         bytes32 orderHash = hashOrder(order);
 
         // check signature is valid using EIP-712
-        require(SignatureChecker.isValidSignatureNow(order.maker, orderHash, signature), "Invalid signature");
+        require(
+            SignatureChecker.isValidSignatureNow(order.maker, orderHash, signature),
+            'Invalid signature'
+        );
 
         // check order is not cancelled
-        require(!cancelledOrders[orderHash], "Order has been cancelled");
+        require(!cancelledOrders[orderHash], 'Order has been cancelled');
 
         // check order nonce is valid
-        require(order.nonce >= minimumValidNonce[order.maker], "Nonce is smaller than min");
+        require(
+            order.nonce >= minimumValidNonce[order.maker], 'Nonce is smaller than min'
+        );
 
         // check msg.sender is allowed to fill the order
-        require(order.whitelist.length == 0 || isWhitelisted(order.whitelist, msg.sender), "Not whitelisted");
+        require(
+            order.whitelist.length == 0 || isWhitelisted(order.whitelist, msg.sender),
+            'Not whitelisted'
+        );
 
         // check duration is not too long
-        require(order.duration <= 10_000 days, "Duration too long");
+        require(order.duration <= 10_000 days, 'Duration too long');
 
         // check duration is not too short
-        require(order.duration >= 15 minutes, "Duration too short");
+        require(order.duration >= 15 minutes, 'Duration too short');
 
         // check order has not expired
-        require(block.timestamp < order.expiration, "Order has expired");
+        require(block.timestamp < order.expiration, 'Order has expired');
 
         // check base asset exists
-        require(order.baseAsset.code.length > 0, "baseAsset is not contract");
+        require(order.baseAsset.code.length > 0, 'baseAsset is not contract');
 
         // check short call doesn't have floor tokens
         if (order.isCall && !order.isLong) {
-            require(order.floorTokens.length == 0, "Short call cant have floorTokens");
+            require(order.floorTokens.length == 0, 'Short call cant have floorTokens');
         }
 
         // check native eth is only used if baseAsset is weth
-        require(msg.value == 0 || order.baseAsset == address(weth), "Cannot use native ETH");
+        require(
+            msg.value == 0 || order.baseAsset == address(weth), 'Cannot use native ETH'
+        );
 
         // check floor asset token ids length is 0 unless the order type is call and side is long
         order.isCall && order.isLong
-            ? require(floorAssetTokenIds.length == order.floorTokens.length, "Wrong amount of floor tokenIds")
-            : require(floorAssetTokenIds.length == 0, "Invalid floor tokens length");
+            ? require(
+                floorAssetTokenIds.length == order.floorTokens.length,
+                'Wrong amount of floor tokenIds'
+            )
+            : require(floorAssetTokenIds.length == 0, 'Invalid floor tokens length');
 
         /*  ~~~ EFFECTS ~~~ */
 
@@ -375,7 +397,8 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
         }
 
         // save the long position expiration
-        positionExpirations[order.isLong ? uint256(orderHash) : positionId] = block.timestamp + order.duration;
+        positionExpirations[order.isLong ? uint256(orderHash) : positionId] =
+            block.timestamp + order.duration;
 
         emit FilledOrder(orderHash, oppositeOrderHash, floorAssetTokenIds, order);
 
@@ -392,17 +415,21 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
         if (order.premium > 0) {
             if (order.isLong) {
                 // transfer premium to taker
-                ERC20(order.baseAsset).safeTransferFrom(order.maker, msg.sender, order.premium - feeAmount);
+                ERC20(order.baseAsset).safeTransferFrom(
+                    order.maker, msg.sender, order.premium - feeAmount
+                );
 
                 // collect fees
                 if (feeAmount > 0) {
-                    ERC20(order.baseAsset).safeTransferFrom(order.maker, address(this), feeAmount);
+                    ERC20(order.baseAsset).safeTransferFrom(
+                        order.maker, address(this), feeAmount
+                    );
                 }
             } else {
                 // handle the case where the user uses native ETH instead of WETH to pay the premium
                 if (msg.value > 0) {
                     // check enough ETH was sent to cover the premium
-                    require(msg.value == order.premium, "Incorrect ETH amount sent");
+                    require(msg.value == order.premium, 'Incorrect ETH amount sent');
 
                     // convert ETH to WETH and send premium to maker
                     // converting to WETH instead of forwarding native ETH to the maker has two benefits;
@@ -414,11 +441,15 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
                     IWETH(weth).transfer(order.maker, order.premium - feeAmount);
                 } else {
                     // transfer premium to maker
-                    ERC20(order.baseAsset).safeTransferFrom(msg.sender, order.maker, order.premium - feeAmount);
+                    ERC20(order.baseAsset).safeTransferFrom(
+                        msg.sender, order.maker, order.premium - feeAmount
+                    );
 
                     // collect fees
                     if (feeAmount > 0) {
-                        ERC20(order.baseAsset).safeTransferFrom(msg.sender, address(this), feeAmount);
+                        ERC20(order.baseAsset).safeTransferFrom(
+                            msg.sender, address(this), feeAmount
+                        );
                     }
                 }
             }
@@ -426,20 +457,24 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
 
         if (!order.isLong && !order.isCall) {
             // filling short put: transfer strike from maker to contract
-            ERC20(order.baseAsset).safeTransferFrom(order.maker, address(this), order.strike);
+            ERC20(order.baseAsset).safeTransferFrom(
+                order.maker, address(this), order.strike
+            );
         } else if (order.isLong && !order.isCall) {
             // filling long put: transfer strike from taker to contract
             // handle the case where the taker uses native ETH instead of WETH to deposit the strike
             if (msg.value > 0) {
                 // check enough ETH was sent to cover the strike
-                require(msg.value == order.strike, "Incorrect ETH amount sent");
+                require(msg.value == order.strike, 'Incorrect ETH amount sent');
 
                 // convert ETH to WETH
                 // we convert the strike ETH to WETH so that the logic in exercise() works
                 // - because exercise() assumes an ERC20 interface on the base asset.
                 IWETH(weth).deposit{value: msg.value}();
             } else {
-                ERC20(order.baseAsset).safeTransferFrom(msg.sender, address(this), order.strike);
+                ERC20(order.baseAsset).safeTransferFrom(
+                    msg.sender, address(this), order.strike
+                );
             }
         } else if (!order.isLong && order.isCall) {
             // filling short call: transfer assets from maker to contract
@@ -455,10 +490,19 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
             _transferFloorsIn(order.floorTokens, floorAssetTokenIds, msg.sender);
         }
 
-        if (ERC165Checker.supportsInterface(order.maker, type(IPuttyV2Handler).interfaceId)) {
+        if (
+            ERC165Checker.supportsInterface(
+                order.maker, type(IPuttyV2Handler).interfaceId
+            )
+        ) {
             // callback the maker with onFillOrder - save 15k gas in case of revert
             order.maker.call{gas: gasleft() - 15_000}(
-                abi.encodeWithSelector(PuttyV2Handler.onFillOrder.selector, order, msg.sender, floorAssetTokenIds)
+                abi.encodeWithSelector(
+                    PuttyV2Handler.onFillOrder.selector,
+                    order,
+                    msg.sender,
+                    floorAssetTokenIds
+                )
             );
         }
     }
@@ -470,27 +514,38 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param floorAssetTokenIds The floor asset token ids to use. Should only be set
      * when exercising a put order.
      */
-    function exercise(Order memory order, uint256[] calldata floorAssetTokenIds) public payable {
+    function exercise(Order memory order, uint256[] calldata floorAssetTokenIds)
+        public
+        payable
+    {
         /* ~~~ CHECKS ~~~ */
 
         bytes32 orderHash = hashOrder(order);
 
         // check user owns the position
-        require(ownerOf(uint256(orderHash)) == msg.sender, "Not owner");
+        require(ownerOf(uint256(orderHash)) == msg.sender, 'Not owner');
 
         // check position is long
-        require(order.isLong, "Can only exercise long positions");
+        require(order.isLong, 'Can only exercise long positions');
 
         // check position has not expired
-        require(block.timestamp < positionExpirations[uint256(orderHash)], "Position has expired");
+        require(
+            block.timestamp < positionExpirations[uint256(orderHash)],
+            'Position has expired'
+        );
 
         // check native eth is only used if baseAsset is weth
-        require(msg.value == 0 || order.baseAsset == address(weth), "Cannot use native ETH");
+        require(
+            msg.value == 0 || order.baseAsset == address(weth), 'Cannot use native ETH'
+        );
 
         // check floor asset token ids length is 0 unless the position type is put
         !order.isCall
-            ? require(floorAssetTokenIds.length == order.floorTokens.length, "Wrong amount of floor tokenIds")
-            : require(floorAssetTokenIds.length == 0, "Invalid floor tokenIds length");
+            ? require(
+                floorAssetTokenIds.length == order.floorTokens.length,
+                'Wrong amount of floor tokenIds'
+            )
+            : require(floorAssetTokenIds.length == 0, 'Invalid floor tokenIds length');
 
         /* ~~~ EFFECTS ~~~ */
 
@@ -515,21 +570,25 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
             if (order.strike > 0) {
                 if (msg.value > 0) {
                     // check enough ETH was sent to cover the strike
-                    require(msg.value == order.strike, "Incorrect ETH amount sent");
+                    require(msg.value == order.strike, 'Incorrect ETH amount sent');
 
                     // convert ETH to WETH
                     // we convert the strike ETH to WETH so that the logic in withdraw() works
                     // - because withdraw() assumes an ERC20 interface on the base asset.
                     IWETH(weth).deposit{value: msg.value}();
                 } else {
-                    ERC20(order.baseAsset).safeTransferFrom(msg.sender, address(this), order.strike);
+                    ERC20(order.baseAsset).safeTransferFrom(
+                        msg.sender, address(this), order.strike
+                    );
                 }
             }
 
             // transfer assets from putty to exerciser
             _transferERC20sOut(order.erc20Assets);
             _transferERC721sOut(order.erc721Assets);
-            _transferFloorsOut(order.floorTokens, positionFloorAssetTokenIds[uint256(orderHash)]);
+            _transferFloorsOut(
+                order.floorTokens, positionFloorAssetTokenIds[uint256(orderHash)]
+            );
         } else {
             // -- exercising a put option
             // exercising a put never needs native ETH
@@ -550,10 +609,17 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
         // attempt call onExercise on the short position owner
         address shortOwner = ownerOf(shortPositionId);
         order.isLong = false;
-        if (ERC165Checker.supportsInterface(shortOwner, type(IPuttyV2Handler).interfaceId)) {
+        if (
+            ERC165Checker.supportsInterface(shortOwner, type(IPuttyV2Handler).interfaceId)
+        ) {
             // callback the short owner with onExercise - save 15k gas in case of revert
             shortOwner.call{gas: gasleft() - 15_000}(
-                abi.encodeWithSelector(PuttyV2Handler.onExercise.selector, order, msg.sender, floorAssetTokenIds)
+                abi.encodeWithSelector(
+                    PuttyV2Handler.onExercise.selector,
+                    order,
+                    msg.sender,
+                    floorAssetTokenIds
+                )
             );
         }
     }
@@ -568,18 +634,21 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
         /* ~~~ CHECKS ~~~ */
 
         // check order is short
-        require(!order.isLong, "Must be short position");
+        require(!order.isLong, 'Must be short position');
 
         bytes32 orderHash = hashOrder(order);
 
         // check msg.sender owns the position
-        require(ownerOf(uint256(orderHash)) == msg.sender, "Not owner");
+        require(ownerOf(uint256(orderHash)) == msg.sender, 'Not owner');
 
         uint256 longPositionId = uint256(hashOppositeOrder(order));
         bool isExercised = exercisedPositions[longPositionId];
 
         // check long position has either been exercised or is expired
-        require(isExercised || block.timestamp > positionExpirations[longPositionId], "Must be exercised or expired");
+        require(
+            isExercised || block.timestamp > positionExpirations[longPositionId],
+            'Must be exercised or expired'
+        );
 
         /* ~~~ EFFECTS ~~~ */
 
@@ -606,7 +675,9 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
             // for call options the floor token ids are saved in the long position in fillOrder(),
             // and for put options the floor tokens ids are saved in the short position in exercise()
             uint256 floorPositionId = order.isCall ? longPositionId : uint256(orderHash);
-            _transferFloorsOut(order.floorTokens, positionFloorAssetTokenIds[floorPositionId]);
+            _transferFloorsOut(
+                order.floorTokens, positionFloorAssetTokenIds[floorPositionId]
+            );
 
             return;
         }
@@ -617,10 +688,10 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param order The order to cancel.
      */
     function cancel(Order memory order) public {
-        require(msg.sender == order.maker, "Not your order");
+        require(msg.sender == order.maker, 'Not your order');
 
         bytes32 orderHash = hashOrder(order);
-        require(_ownerOf[uint256(orderHash)] == address(0), "Order already filled");
+        require(_ownerOf[uint256(orderHash)] == address(0), 'Order already filled');
 
         // mark the order as cancelled
         cancelledOrders[orderHash] = true;
@@ -638,13 +709,15 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param floorAssetTokenIds The floorAssetTokenIds to use for each respective order.
      * @return positionIds The ids of the position NFT that the msg.sender receives.
      */
-    function batchFillOrder(Order[] memory orders, bytes[] calldata signatures, uint256[][] memory floorAssetTokenIds)
-        public
-        returns (uint256[] memory positionIds)
-    {
+    function batchFillOrder(
+        Order[] memory orders,
+        bytes[] calldata signatures,
+        uint256[][] memory floorAssetTokenIds
+    ) public returns (uint256[] memory positionIds) {
         require(
-            orders.length == signatures.length && signatures.length == floorAssetTokenIds.length,
-            "Length mismatch in input"
+            orders.length == signatures.length
+                && signatures.length == floorAssetTokenIds.length,
+            'Length mismatch in input'
         );
 
         positionIds = new uint256[](orders.length);
@@ -666,11 +739,11 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param originalOrder The original order that the counter was made for.
      * @return positionId The id of the position NFT that the msg.sender receives.
      */
-    function acceptCounterOffer(Order memory order, bytes calldata signature, Order memory originalOrder)
-        public
-        payable
-        returns (uint256 positionId)
-    {
+    function acceptCounterOffer(
+        Order memory order,
+        bytes calldata signature,
+        Order memory originalOrder
+    ) public payable returns (uint256 positionId) {
         // cancel the original order
         cancel(originalOrder);
 
@@ -685,7 +758,9 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param _minimumValidNonce The new minimum valid nonce.
      */
     function setMinimumValidNonce(uint256 _minimumValidNonce) public {
-        require(_minimumValidNonce > minimumValidNonce[msg.sender], "Nonce should increase");
+        require(
+            _minimumValidNonce > minimumValidNonce[msg.sender], 'Nonce should increase'
+        );
         minimumValidNonce[msg.sender] = _minimumValidNonce;
 
         emit SetMinimumValidNonce(_minimumValidNonce);
@@ -703,7 +778,7 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
             address token = assets[i].token;
             uint256 tokenAmount = assets[i].tokenAmount;
 
-            require(token.code.length > 0, "ERC20: Token is not contract");
+            require(token.code.length > 0, 'ERC20: Token is not contract');
 
             if (tokenAmount > 0) {
                 ERC20(token).safeTransferFrom(from, address(this), tokenAmount);
@@ -718,7 +793,9 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      */
     function _transferERC721sIn(ERC721Asset[] memory assets, address from) internal {
         for (uint256 i = 0; i < assets.length; i++) {
-            ERC721(assets[i].token).safeTransferFrom(from, address(this), assets[i].tokenId);
+            ERC721(assets[i].token).safeTransferFrom(
+                from, address(this), assets[i].tokenId
+            );
         }
     }
 
@@ -728,7 +805,11 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param floorTokenIds The token id of each erc721.
      * @param from Who to transfer the floor tokens from.
      */
-    function _transferFloorsIn(address[] memory floorTokens, uint256[] memory floorTokenIds, address from) internal {
+    function _transferFloorsIn(
+        address[] memory floorTokens,
+        uint256[] memory floorTokenIds,
+        address from
+    ) internal {
         for (uint256 i = 0; i < floorTokens.length; i++) {
             ERC721(floorTokens[i]).safeTransferFrom(from, address(this), floorTokenIds[i]);
         }
@@ -752,7 +833,9 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      */
     function _transferERC721sOut(ERC721Asset[] memory assets) internal {
         for (uint256 i = 0; i < assets.length; i++) {
-            ERC721(assets[i].token).safeTransferFrom(address(this), msg.sender, assets[i].tokenId);
+            ERC721(assets[i].token).safeTransferFrom(
+                address(this), msg.sender, assets[i].tokenId
+            );
         }
     }
 
@@ -761,9 +844,14 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param floorTokens The contract addresses for each floor token.
      * @param floorTokenIds The token id of each floor token.
      */
-    function _transferFloorsOut(address[] memory floorTokens, uint256[] memory floorTokenIds) internal {
+    function _transferFloorsOut(
+        address[] memory floorTokens,
+        uint256[] memory floorTokenIds
+    ) internal {
         for (uint256 i = 0; i < floorTokens.length; i++) {
-            ERC721(floorTokens[i]).safeTransferFrom(address(this), msg.sender, floorTokenIds[i]);
+            ERC721(floorTokens[i]).safeTransferFrom(
+                address(this), msg.sender, floorTokenIds[i]
+            );
         }
     }
 
@@ -773,7 +861,11 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param target The target address to check.
      * @return If it exists in the whitelist or not.
      */
-    function isWhitelisted(address[] memory whitelist, address target) public pure returns (bool) {
+    function isWhitelisted(address[] memory whitelist, address target)
+        public
+        pure
+        returns (bool)
+    {
         for (uint256 i = 0; i < whitelist.length; i++) {
             if (target == whitelist[i]) {
                 return true;
@@ -789,7 +881,11 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param order The order to find the complementary long/short hash for.
      * @return orderHash The hash of the opposite order.
      */
-    function hashOppositeOrder(Order memory order) public view returns (bytes32 orderHash) {
+    function hashOppositeOrder(Order memory order)
+        public
+        view
+        returns (bytes32 orderHash)
+    {
         // use decode/encode to get a copy instead of reference
         Order memory oppositeOrder = abi.decode(abi.encode(order), (Order));
 
@@ -833,10 +929,18 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param arr Array of erc20 assets to hash.
      * @return encoded The eip-712 encoded array of erc20 assets.
      */
-    function encodeERC20Assets(ERC20Asset[] memory arr) public pure returns (bytes memory encoded) {
+    function encodeERC20Assets(ERC20Asset[] memory arr)
+        public
+        pure
+        returns (bytes memory encoded)
+    {
         for (uint256 i = 0; i < arr.length; i++) {
-            encoded =
-                abi.encodePacked(encoded, keccak256(abi.encode(ERC20ASSET_TYPE_HASH, arr[i].token, arr[i].tokenAmount)));
+            encoded = abi.encodePacked(
+                encoded,
+                keccak256(
+                    abi.encode(ERC20ASSET_TYPE_HASH, arr[i].token, arr[i].tokenAmount)
+                )
+            );
         }
     }
 
@@ -845,10 +949,16 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @param arr Array of erc721 assets to hash.
      * @return encoded The eip-712 encoded array of erc721 assets.
      */
-    function encodeERC721Assets(ERC721Asset[] memory arr) public pure returns (bytes memory encoded) {
+    function encodeERC721Assets(ERC721Asset[] memory arr)
+        public
+        pure
+        returns (bytes memory encoded)
+    {
         for (uint256 i = 0; i < arr.length; i++) {
-            encoded =
-                abi.encodePacked(encoded, keccak256(abi.encode(ERC721ASSET_TYPE_HASH, arr[i].token, arr[i].tokenId)));
+            encoded = abi.encodePacked(
+                encoded,
+                keccak256(abi.encode(ERC721ASSET_TYPE_HASH, arr[i].token, arr[i].tokenId))
+            );
         }
     }
 
@@ -867,7 +977,7 @@ contract PuttyV2 is PuttyV2Nft, EIP712("Putty", "2.0"), ERC721TokenReceiver, Own
      * @return The tokenURI of the position NFT.
      */
     function tokenURI(uint256 id) public view override returns (string memory) {
-        require(_ownerOf[id] != address(0), "URI query for NOT_MINTED token");
+        require(_ownerOf[id] != address(0), 'URI query for NOT_MINTED token');
 
         return string.concat(baseURI, Strings.toString(id));
     }
