@@ -14,13 +14,14 @@ import {Order} from './lib/Order.sol';
 /// to pay the option premium.
 contract PuttyExerciser is IFlashLoanSimpleReceiver {
     // ----------------------------------------
-    //                STORAGE
+    //               IMMUTABLES
     // ----------------------------------------
 
     /// @notice Lending pool that supports flashloans
     ILendingPool public immutable lendingPool;
     /// @notice Putty contract to exercise options
     IPuttyV2 public immutable putty;
+    /// @notice WETH contract
     IWETH public immutable weth;
 
     // ----------------------------------------
