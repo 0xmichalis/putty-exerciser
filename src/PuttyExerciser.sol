@@ -92,9 +92,11 @@ contract PuttyExerciser is IFlashLoanSimpleReceiver {
 
         // Swap received NFT in Sudo - assuming there is a single
         // NFT asset per option so we just use a single pool.
-        ILSSVMPair(sudoPool).swapNFTsForToken(
-            nftIds, amountOwing, payable(initiator), false, address(0)
+        uint256 amountOut = ILSSVMPair(sudoPool).swapNFTsForToken(
+            nftIds, amountOwing, payable(address(this)), false, address(0)
         );
+        // Transfer profits and leave the remaining
+        IWETH(weth).transfer(initiator, amountOut - amountOwing);
 
         return true;
     }
